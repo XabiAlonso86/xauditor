@@ -6,7 +6,7 @@ import sys
 import subprocess
 import multiprocessing
 # Imports de paquetes propios
-import sistema.operaciones as sistema
+import sistema.operaciones as oper
 from classes.auditedip import AuditedIP
 
 # Comprobación de parámetros
@@ -25,14 +25,16 @@ def multProc(targetin, scanip, port):
 
 # Función de escaneo NMAP
 def nmapScan(ip_address, mainPath):
-    nmapCmd = "sudo nmap -sV -O %s -oX '%s%s/%s.nmap'" % (ip_address,mainPath,ip_address,ip_address)
-    print ("<INFO>: Escaneo nmap de versiones " + nmapCmd + " sobre " + ip_address)
+    nmapCmd = "sudo nmap -sV -O %s -oN '%s%s/%s_grep.nmap'" % (ip_address,mainPath,ip_address,ip_address)
+    print "<INFO>: Escaneo nmap de versiones (" + nmapCmd + ") sobre " + ip_address
     try:
         results = subprocess.check_output(nmapCmd, shell=True)
+        # Analizamos resultados
+        oper.analyzeNMAP(results)
     # Capturamos Cierre de la aplicación por el usuario
     except KeyboardInterrupt:
         print "<ERROR>: Escaneo TCP Version sobre " + ip_address + " interrumpido por el usuario."
-    print (results)
+    #print (results)
 
     # Lanzamos UDPScan (De momento no, que no tiene mucho sentido)
     #p = multiprocessing.Process(target=udpScan, args=(ip_address, mainPath))
@@ -41,8 +43,8 @@ def nmapScan(ip_address, mainPath):
 # Función de escaneo NMAP a los puertos UDP
 def udpScan(ip_address, mainPath):
     print "<INFO>: Escaneo UDP sobre " + ip_address
-    nmapCmd = "sudo nmap -vv -Pn -A -sC -sU -T 4 --top-ports 200 -oX '%s%s/udp_%s.nmap' %s"  % (mainPath,ip_address,ip_address,ip_address)
-    print "<INFO>:" + nmapCmd
+    nmapCmd = "sudo nmap -vv -Pn -A -sC -sU -T 4 --top-ports 200 -oN '%s%s/udp_%s.nmap' %s"  % (mainPath,ip_address,ip_address,ip_address)
+    print "<INFO>: Escaneo UDP (" + nmapCmd + ") sobre " + ip_address
     try:
         udpscan_results = subprocess.check_output(nmapCmd, shell=True)
     # Capturamos Cierre de la aplicación por el usuario
@@ -67,14 +69,14 @@ if __name__=='__main__':
     # Creamos directorio de la aplicación si es necesario
     mainPath = "%s/xauditor/" % (os.environ['HOME'])
     if not os.path.exists(mainPath):
-        sistema.createMainPath(mainPath)
+        oper.createMainPath(mainPath)
     # Recorremos cada IP obtenida y vamos ejecutando análisis de reco
     for scanip in targets:
-        if sistema.validIP(scanip) is not None:
+        if oper.validIP(scanip) is not None:
             # Creamos directorios para la IP
             dirs = os.listdir(mainPath)
             if not scanip in dirs:
-                sistema.createPath(mainPath, scanip)
+                oper.createPath(mainPath, scanip)
             # Proceso para realizar escaneos NMAP
             p = multiprocessing.Process(target=nmapScan, args=(scanip,mainPath))
             p.start()

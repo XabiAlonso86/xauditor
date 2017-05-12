@@ -1,0 +1,24 @@
+Starting Nmap 7.01 ( https://nmap.org ) at 2017-05-12 12:43 BST
+Nmap scan report for 10.192.0.119
+Host is up (0.052s latency).
+Not shown: 990 closed ports
+PORT     STATE    SERVICE     VERSION
+22/tcp   open     ssh         OpenSSH 6.0p1 Debian 4 (protocol 2.0)
+80/tcp   open     http        Apache httpd 2.4.12 ((Unix) OpenSSL/1.0.1e)
+111/tcp  open     rpcbind     2-4 (RPC #100000)
+139/tcp  open     netbios-ssn Samba smbd 3.X (workgroup: PGESEG-NAS)
+443/tcp  open     ssl/http    Apache httpd 2.4.12 ((Unix) OpenSSL/1.0.1e)
+445/tcp  open     netbios-ssn Samba smbd 3.X (workgroup: PGESEG-NAS)
+514/tcp  filtered shell
+631/tcp  open     ipp         CUPS 1.5
+873/tcp  open     rsync       (protocol version 30)
+2049/tcp open     nfs         2-4 (RPC #100003)
+Device type: WAP|general purpose|storage-misc
+Running (JUST GUESSING): Actiontec embedded (99%), Linux 2.4.X|3.X (99%), Microsoft Windows 7|2012|XP (96%), BlueArc embedded (91%)
+OS CPE: cpe:/h:actiontec:mi424wr-gen3i cpe:/o:linux:linux_kernel cpe:/o:linux:linux_kernel:2.4.37 cpe:/o:linux:linux_kernel:3.2 cpe:/o:microsoft:windows_7 cpe:/o:microsoft:windows_server_2012 cpe:/o:microsoft:windows_xp::sp3 cpe:/h:bluearc:titan_2100
+Aggressive OS guesses: Actiontec MI424WR-GEN3I WAP (99%), DD-WRT v24-sp2 (Linux 2.4.37) (98%), Linux 3.2 (98%), Microsoft Windows 7 or Windows Server 2012 (96%), Microsoft Windows XP SP3 (96%), BlueArc Titan 2100 NAS device (91%)
+No exact OS matches for host (test conditions non-ideal).
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 33.29 seconds
