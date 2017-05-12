@@ -7,7 +7,6 @@ import subprocess
 import multiprocessing
 # Imports de paquetes propios
 import sistema.operaciones as oper
-from classes.auditedip import AuditedIP
 
 # Comprobación de parámetros
 print ("xauditor alpha 0.1")
@@ -25,18 +24,18 @@ def multProc(targetin, scanip, port):
 
 # Función de escaneo NMAP
 def nmapScan(ip_address, mainPath):
-    nmapCmd = "sudo nmap -sV -O %s -oN '%s%s/%s_grep.nmap'" % (ip_address,mainPath,ip_address,ip_address)
+    nmapCmd = "sudo nmap -sV -O %s -oN '%s%s/%s.nmap'" % (ip_address,mainPath,ip_address,ip_address)
     print "<INFO>: Escaneo nmap de versiones (" + nmapCmd + ") sobre " + ip_address
     try:
         results = subprocess.check_output(nmapCmd, shell=True)
-        # Analizamos resultados
-        oper.analyzeNMAP(results)
+        # Analizamos resultados y obtenemos lista de servicios disponibles
+        services = oper.analyzeNMAP(results)
     # Capturamos Cierre de la aplicación por el usuario
     except KeyboardInterrupt:
         print "<ERROR>: Escaneo TCP Version sobre " + ip_address + " interrumpido por el usuario."
     #print (results)
 
-    # Lanzamos UDPScan (De momento no, que no tiene mucho sentido)
+    # Lanzamos UDPScan
     #p = multiprocessing.Process(target=udpScan, args=(ip_address, mainPath))
     #p.start()
 
