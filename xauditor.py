@@ -26,15 +26,16 @@ def multProc(targetin, scanip, port):
 
 # Función de escaneo NMAP
 def nmapScan(ip_address, mainPath):
-    nmapCmd = "sudo nmap -sV -O %s -oN '%s/%s/%s.nmap'" % (ip_address,mainPath,ip_address,ip_address)
-    logger.info("Escaneo nmap de versiones (%s) sobre %s",nmapCmd,ip_address)
+    nmapCmd = "sudo nmap -sV -O %s -oN '%s/%s/%s@%s.nmap'" % (ip_address,mainPath,ip_address,ip_address,time.strftime("%HH_%M_%S"))
+    logger.info("Escaneo nmap de versiones sobre %s",ip_address)
+    logger.debug("Comando nmap %s",nmapCmd)
     try:
-        results = subprocess.check_output(nmapCmd, shell=True)
+        results = subprocess.getoutput(nmapCmd)
         # Analizamos resultados y obtenemos lista de servicios disponibles
         services = oper.analyzeNMAP(results)
     # Capturamos Cierre de la aplicación por el usuario
     except KeyboardInterrupt:
-        logger.error("Escaneo TCP Version sobre %s interrumpido por el usuario.",ip_address)
+        logger.exception("Escaneo TCP Version sobre %s interrumpido por el usuario.",ip_address)
     #print (results)
 
     # Lanzamos UDPScan
@@ -44,19 +45,20 @@ def nmapScan(ip_address, mainPath):
 # Función de escaneo NMAP a los puertos UDP
 def udpScan(ip_address, mainPath):
     logger.info("Escaneo UDP sobre %s",ip_address)
-    nmapCmd = "sudo nmap -vv -Pn -A -sC -sU -T 4 --top-ports 200 -oN '%s/%s/udp_%s.nmap' %s"  % (mainPath,ip_address,ip_address,ip_address)
-    logger.info("Escaneo nmap UDP (%s) sobre %s",nmapCmd,ip_address)
+    nmapCmd = "sudo nmap -vv -Pn -A -sC -sU -T 4 --top-ports 200 -oN '%s/%s/udp_%s@%s.nmap' %s"  % (mainPath,ip_address,ip_address,ip_address,time.strftime("%HH_%M_%S"))
+    logger.info("Escaneo nmap UDP sobre %s",ip_address)
+    logger.debug("Comando nmap %s",nmapCmd)
     try:
-        udpscan_results = subprocess.check_output(nmapCmd, shell=True)
+        udpscan_results = subprocess.getoutput(nmapCmd)
     # Capturamos Cierre de la aplicación por el usuario
     except KeyboardInterrupt:
         logger.error("Escaneo UDP sobre %s interrumpido por el usuario.",ip_address)
 
     logger.info("Terminado escaneo UDP para %s",ip_address)
-    print udpscan_results
+    print (udpscan_results)
     logger.info("Escaneo UDP unicornscan sobre %s",ip_address)
-    unicornCmd = "unicornscan -mU -v -I %s > '%s/%s/unicordn_udp_%s.txt'" % (ip_address,mainPath, ip_address, ip_address)
-    #unicornscan_results = subprocess.check_output(unicornCmd, shell=True)
+    unicornCmd = "unicornscan -mU -v -I %s > '%s/%s/unicordn_udp_%s@%s.txt'" % (ip_address,mainPath, ip_address, ip_address,time.strftime("%HH_%M_%S"))
+    #unicornscan_results = subprocess.getoutput(unicornCmd)
     logger.info("Unicornscan finalizado sobre %s",ip_address)
 
 

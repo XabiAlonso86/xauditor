@@ -13,7 +13,7 @@ def createMainPath(mainPath):
     subprocess.check_output("mkdir " + mainPath, shell=True)
 
 # Método para crear directorios para el análisis de una Dirección IP
-def createPath(mainPath, ip_address):    
+def createPath(mainPath, ip_address):
     module_logger.info("Creando directorios para IP %s",ip_address)
     subprocess.check_output("mkdir " + mainPath + "/" + ip_address, shell=True)
 
@@ -52,12 +52,12 @@ def processPortLine(line, services):
 def analyzeNMAP(result):
     # Creamos diccionario de servicios
     services = {}
-    lines = result.split("\n")
+    lines = result.split('\n')
     for line in lines:
         if ("/tcp" in line) or ("/udp" in line):
             processPortLine(line,services)
 
     for nombre, servicio in services.items():
-        print nombre
-    print len(services)
+        print (nombre)
+    print (len(services))
     # Devolvemos
