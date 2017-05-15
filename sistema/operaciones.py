@@ -5,7 +5,7 @@ import logging
 # Paquetes locales
 import classes.servicio as srv
 
-module_logger = logging.getLogger("xauditor.operaciones")
+module_logger = logging.getLogger('xauditor').getChild('operaciones')
 
 # Método para crear directorio de xauditor
 def createMainPath(mainPath):
@@ -48,16 +48,40 @@ def processPortLine(line, services):
         servicio.estados.append(estado)
         services[nombre] = servicio
 
+# Método para analizar la línea de SO de NMAP cuando encuentra 100%
+def processOSLine(line,services):
+
+    if ("JUST GUESSING" in line):
+        # No sabemos que OS es a ciencia cierta
+        nombre = "Desconocido"
+    elif ("Windows" in line) and not ("Linux" in line):
+        # Es un Windows
+        nombre = "Windows"
+    elif ("Linux" in line) and not ("Windows" in line):
+        # Es un Linux
+        nombre = "Linux"
+
+    servicio = srv.Servicio(nombre)
+    servicio.puertos.append("0")
+    servicio.versiones.append("0")
+    servicio.estados.append("0")
+    services[nombre] = servicio
+
 # Método que analiza los resultados línea a línea de un test NMAP
 def analyzeNMAP(result):
+
+    module_logger.info ("Log Info 2")
+    module_logger.debug ("Log Debug 2")
+    module_logger.error ("Log Error 2")
+
     # Creamos diccionario de servicios
     services = {}
     lines = result.split('\n')
     for line in lines:
         if ("/tcp" in line) or ("/udp" in line):
             processPortLine(line,services)
+        elif ("Running" in line):
+            processOSLine(line,services)
 
-    for nombre, servicio in services.items():
-        print (nombre)
-    print (len(services))
-    # Devolvemos
+    # Devolvemos los servicios
+    return services

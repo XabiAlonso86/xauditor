@@ -9,6 +9,10 @@ import logging
 import time
 # Imports de paquetes propios
 import sistema.operaciones as oper
+import classes.analyzedIP as aip
+
+# Variables  globales
+analyzedIPs = {} # Diccionario con todas las IPs que se analizan
 
 # Comprobación de parámetros
 print ("xauditor alpha 0.1")
@@ -24,43 +28,29 @@ def multProc(targetin, scanip, port):
     p.start()
     return
 
-# Función de escaneo NMAP
-def nmapScan(ip_address, mainPath):
-    nmapCmd = "sudo nmap -sV -O %s -oN '%s/%s/%s@%s.nmap'" % (ip_address,mainPath,ip_address,ip_address,time.strftime("%HH_%M_%S"))
-    logger.info("Escaneo nmap de versiones sobre %s",ip_address)
-    logger.debug("Comando nmap %s",nmapCmd)
-    try:
-        results = subprocess.getoutput(nmapCmd)
-        # Analizamos resultados y obtenemos lista de servicios disponibles
-        services = oper.analyzeNMAP(results)
-    # Capturamos Cierre de la aplicación por el usuario
-    except KeyboardInterrupt:
-        logger.exception("Escaneo TCP Version sobre %s interrumpido por el usuario.",ip_address)
-    #print (results)
+# Método para crear el log de xauditor
+def createLogger(mainPath):
+    # Creamos el logger
+    #logging.basicConfig(level=logging.DEBUG)
+    logger = logging.getLogger("xauditor")
+    # Creamos formato de log
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    # Establecemos el nivel
+    logger.setLevel(logging.DEBUG)
+    # Creamos console handle para mostrar log en la consola
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.INFO)
+    ch.setFormatter(formatter)
 
-    # Lanzamos UDPScan
-    #p = multiprocessing.Process(target=udpScan, args=(ip_address, mainPath))
-    #p.start()
+    # Creamos file handler para guardar el log en un fichero
+    fh = logging.FileHandler(mainPath + '/xauditor@%s.log' % time.strftime("%H_%M_%S"))
+    fh.setFormatter(formatter)
+    fh.setLevel(logging.DEBUG)
 
-# Función de escaneo NMAP a los puertos UDP
-def udpScan(ip_address, mainPath):
-    logger.info("Escaneo UDP sobre %s",ip_address)
-    nmapCmd = "sudo nmap -vv -Pn -A -sC -sU -T 4 --top-ports 200 -oN '%s/%s/udp_%s@%s.nmap' %s"  % (mainPath,ip_address,ip_address,ip_address,time.strftime("%HH_%M_%S"))
-    logger.info("Escaneo nmap UDP sobre %s",ip_address)
-    logger.debug("Comando nmap %s",nmapCmd)
-    try:
-        udpscan_results = subprocess.getoutput(nmapCmd)
-    # Capturamos Cierre de la aplicación por el usuario
-    except KeyboardInterrupt:
-        logger.error("Escaneo UDP sobre %s interrumpido por el usuario.",ip_address)
-
-    logger.info("Terminado escaneo UDP para %s",ip_address)
-    print (udpscan_results)
-    logger.info("Escaneo UDP unicornscan sobre %s",ip_address)
-    unicornCmd = "unicornscan -mU -v -I %s > '%s/%s/unicordn_udp_%s@%s.txt'" % (ip_address,mainPath, ip_address, ip_address,time.strftime("%HH_%M_%S"))
-    #unicornscan_results = subprocess.getoutput(unicornCmd)
-    logger.info("Unicornscan finalizado sobre %s",ip_address)
-
+    # Añadir al logger los handlers para que se encargue de generar los logs
+    logger.addHandler(fh)
+    logger.addHandler(ch)
+    return logger
 
 # Comienzo del programa
 if __name__=='__main__':
@@ -69,30 +59,13 @@ if __name__=='__main__':
     # Quitamos el primer objeto porque es el nombre del programa
     targets.pop(0)
 
-    time.strftime("%d_%m_%Y")
-
     # Creamos directorio de la aplicación si es necesario
     mainPath = "%s/xauditor/%s" % (os.environ['HOME'],time.strftime("%d_%m_%Y"))
     if not os.path.exists(mainPath):
         oper.createMainPath(mainPath)
 
-    # Creamos el logger
-    logging.basicConfig(level=logging.INFO)
-    logger = logging.getLogger("xauditor")
-
-    # Creamos file handler para guardar el log en un fichero
-    fh = logging.FileHandler(mainPath + '/xauditor@%s.log' % time.strftime("%H_%M_%S"))
-    fh.setLevel(logging.DEBUG)
-    # Creamos console handle para mostrar log en la consola
-    ch = logging.StreamHandler()
-    ch.setLevel(logging.INFO)
-    # Creamos formato de log y lo añadimos a los handlers
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    fh.setFormatter(formatter)
-    ch.setFormatter(formatter)
-    # Añadir al logger los handlers para que se encargue de generar los logs
-    logger.addHandler(fh)
-    logger.addHandler(ch)
+    # Creamos el logger de la aplicación
+    logger = createLogger(mainPath)
 
     # Recorremos cada IP obtenida y vamos ejecutando análisis de reco
     for scanip in targets:
@@ -101,8 +74,11 @@ if __name__=='__main__':
             dirs = os.listdir(mainPath)
             if not scanip in dirs:
                 oper.createPath(mainPath, scanip)
+            # Creamos nuevo objeto analyzedIP
+            ip = aip.AnalizedIP(scanip,mainPath)
+
             # Proceso para realizar escaneos NMAP
-            p = multiprocessing.Process(target=nmapScan, args=(scanip,mainPath))
+            p = multiprocessing.Process(target=ip.analyze, args=())
             p.start()
         else:
-            logger.error ("<ERROR>: IP %s tiene un formato incorrecto",scanip)
+            logger.error ("IP %s tiene un formato incorrecto",scanip)
