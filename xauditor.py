@@ -62,7 +62,9 @@ if __name__=='__main__':
     # Creamos directorio de la aplicación si es necesario
     mainPath = "%s/xauditor/%s" % (os.environ['HOME'],time.strftime("%d_%m_%Y"))
     if not os.path.exists(mainPath):
-        oper.createMainPath(mainPath)
+        print ("Creando directorio para aplicación xauditor")
+        print("Directorio Aplicación: %s" % (mainPath))
+        os.makedirs(mainPath)
 
     # Creamos el logger de la aplicación
     logger = createLogger(mainPath)
@@ -72,10 +74,13 @@ if __name__=='__main__':
         if oper.validIP(scanip) is not None:
             # Creamos directorios para la IP
             dirs = os.listdir(mainPath)
+            ipPath = mainPath + "/%s" % (scanip)
             if not scanip in dirs:
-                oper.createPath(mainPath, scanip)
+                logger.info ("Creando directorio para la dirección IP")
+                logger.debug("Directorio IP: %s" % (ipPath))
+                os.makedirs(ipPath)
             # Creamos nuevo objeto analyzedIP
-            ip = aip.AnalizedIP(scanip,mainPath)
+            ip = aip.AnalizedIP(scanip,ipPath)
 
             # Proceso para realizar escaneos NMAP
             p = multiprocessing.Process(target=ip.analyze, args=())
