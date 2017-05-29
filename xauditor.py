@@ -63,18 +63,17 @@ def analyzeIP(ip,folder):
     servicios = manager.dict()
     serviciosUDP = manager.dict()
     # Creamos procesos escaneo NMAP
+    logger.info("IpPath:%s" % (ipPath))
     p = mp.Process(target=scn.nmapScan,name="nmapScan_" + ip, args=(scanip,ipPath,servicios))
     jobs.append(p)
     p.start()
-    p = mp.Process(target=scn.nmapScan,name="nmapUdpScan_" + ip, args=(scanip,ipPath,serviciosUDP))
-    jobs.append(p)
-    p.start()
-    contJobs += 1
+    #p = mp.Process(target=scn.nmapUdpScan,name="nmapUdpScan_" + ip, args=(scanip,ipPath,serviciosUDP))
+    #jobs.append(p)
+    #p.start()
     # UnicornScan (sólo guardamos resultado)
     p = mp.Process(target=scn.unicornScan,name="unicornScan_" + ip, args=(scanip,ipPath))
     jobs.append(p)
     p.start()
-    contJobs += 1
     # Entramos en bucle hasta que se completen todos los procesos
     # Es posible que los resultados de un proceso impliquen la creación de otro
     print ("Procesos: %s" % (len(jobs)))
@@ -104,6 +103,8 @@ def analyzeIP(ip,folder):
                         line += job.name + " "
                     logger.info("Procesos pendientes: %s" % (line))
 
+    logger.info("analyzeIP de IP %s terminado en %s minutos" % (ip,time.strftime("%M:%S", time.gmtime(timerElapsed))))
+
     
 # Método para comprobar que proceso de análisis de IP ha terminado
 # * args recibirá servicios ocasionalmente por eso no se pasa siempre
@@ -126,7 +127,7 @@ def checkJobIPFinished(nombre,listaJobs,ip,folder,*args):
                         # Creamos proceso y lo añadimos a la lista
                         p = mp.Process(target=httpenum,name="httpenum_" + ip, args=(ip,puerto,folder))
                         listaJobs.append(p)
-                        logger.info("Añadido nuevo proceso a la lista de la IP %s. Ahora hay %s" % (ip,len(listaJobs)))
+                        logger.info("Añadido proceso httpenum a la lista de la IP %s. Ahora hay %s" % (ip,len(listaJobs)))
                         # Iniciamos el proceso
                         p.start()
                 # Servicio HTTPS
@@ -137,9 +138,66 @@ def checkJobIPFinished(nombre,listaJobs,ip,folder,*args):
                         # Creamos proceso y lo añadimos a la lista
                         p = mp.Process(target=httpsenum,name="httpsenum_" + ip, args=(ip,puerto,folder))
                         listaJobs.append(p)
-                        logger.info("Añadido nuevo proceso a la lista de la IP %s. Ahora hay %s" % (ip,len(listaJobs)))
+                        logger.info("Añadido proceso httpsenum a la lista de la IP %s. Ahora hay %s" % (ip,len(listaJobs)))
                         # Iniciamos el proceso
                         p.start()
+                # Servicio SMTP
+                elif (nombre == "smtp"):
+                    for puerto in servicio.puertos:
+                        # Lanzamos proceso para analizar smtp
+                        logger.info("Encontrado servicio smtp para ip %s en puerto %s" % (ip,puerto))
+                        # Creamos proceso y lo añadimos a la lista
+                        p = mp.Process(target=smtpenum,name="smtpenum_" + ip, args=(ip,puerto,folder))
+                        listaJobs.append(p)
+                        logger.info("Añadido proceso smtpenum a la lista de la IP %s. Ahora hay %s" % (ip,len(listaJobs)))
+                        # Iniciamos el proceso
+                        p.start()
+                # Servicio FTP
+                elif (nombre == "ftp"):
+                    for puerto in servicio.puertos:
+                        # Lanzamos proceso para analizar ftp
+                        logger.info("Encontrado servicio ftp para ip %s en puerto %s" % (ip,puerto))
+                        # Creamos proceso y lo añadimos a la lista
+                        p = mp.Process(target=ftpenum,name="ftpenum_" + ip, args=(ip,puerto,folder))
+                        listaJobs.append(p)
+                        logger.info("Añadido proceso ftpenum a la lista de la IP %s. Ahora hay %s" % (ip,len(listaJobs)))
+                        # Iniciamos el proceso
+                        p.start()
+                # Servicio NetBios
+                elif (nombre == "microsoft-ds") or (nombre == "netbios-ssn"):
+                    for puerto in servicio.puertos:
+                        # Lanzamos proceso para analizar netbios
+                        logger.info("Encontrado servicio NetBios para ip %s en puerto %s" % (ip,puerto))
+                        # Creamos el proceso y lo añadimos a la lista
+                        p = mp.Process(target=smbEnum,name="smbEnum_" + ip, args=(ip,puerto,folder))
+                        listaJobs.append(p)
+                        logger.info("Añadido proceso smbEnum a la lista de la IP %s. Ahora hay %s" % (ip,len(listaJobs)))
+                        # Iniciamos el proceso
+                        p.start()
+                # Servicio ms-sql
+                elif (nombre == "ms-sql"):
+                    for puerto in servicio.puertos:
+                        # Lanzamos proceso para analizar ms-sql
+                        logger.info("Encontrado servicio MS-SQL para ip %s en puerto %s" % (ip,puerto))
+                        # Creamos el proceso y lo añadimos a la lista
+                        p = mp.Process(target=mssqlEnum,name="mssqlEnum_" + ip, args=(ip,puerto,folder))
+                        listaJobs.append(p)
+                        logger.info("Añadido proceso mssqlEnum a la lista de la IP %s. Ahora hay %s" % (ip,len(listaJobs)))
+                        # Iniciamos el proceso
+                        p.start()
+                # Servicio ssh
+                elif (nombre == "ssh"):
+                    for puerto in servicio.puertos:
+                        # Lanzamos proceso para analizar ms-sql
+                        logger.info("Encontrado servicio ssh para ip %s en puerto %s" % (ip,puerto))
+                        # Creamos el proceso y lo añadimos a la lista
+                        p = mp.Process(target=scn.conectarPuerto,name="sshScan_" + ip, args=(ip,puerto,folder + "/ssh"))
+                        listaJobs.append(p)
+                        logger.info("Añadido proceso sshScan a la lista de la IP %s. Ahora hay %s" % (ip,len(listaJobs)))
+                        # Iniciamos el proceso
+                        p.start()
+                ## Resto de servicios
+                            
 
     logger.debug("Fin checkJobIPFinished.")
     return
@@ -149,23 +207,23 @@ def checkJobIPFinished(nombre,listaJobs,ip,folder,*args):
 def httpenum(ip,puerto,folder):
     # Variables para guardar procesos creados para la ip
     jobs = []
-    folderHttp =  folder + "/http"
+    path =  folder + "/http"
     logger.info ("Iniciando enumeración HTTP para la IP %s:%s" % (ip,puerto))
     # Creamos directorios de las carpetas
-    if not os.path.exists(folderHttp):
+    if not os.path.exists(path):
         logger.info("Creamos directorio http")
-        os.makedirs(folderHttp)
+        os.makedirs(path)
     # Creamos procesos
     # dirbScan
-    p = mp.Process(target=scn.dirbScan,name="dirbScan_" + ip, args=(ip,puerto,"http",folderHttp))
+    p = mp.Process(target=scn.dirbScan,name="dirbScan_" + ip, args=(ip,puerto,"http",path))
     jobs.append(p)
     p.start()
     # nikto
-    p = mp.Process(target=scn.niktoScan,name="niktoScan_" + ip, args=(ip,puerto,"http",folderHttp))
+    p = mp.Process(target=scn.niktoScan,name="niktoScan_" + ip, args=(ip,puerto,"http",path))
     jobs.append(p)
     p.start()
-    scn.curlScan(ip,puerto,folderHttp)
-    p = mp.Process(target=scn.nmapScriptsLauncher,name="nmapScriptsLauncher_" + ip, args=(ip,puerto,folderHttp,"HTTP"))
+    scn.curlScan(ip,puerto,path)
+    p = mp.Process(target=scn.nmapScriptsLauncher,name="nmapScriptsLauncher_" + ip, args=(ip,puerto,path,"HTTP"))
     jobs.append(p)
     p.start()
     timerElapsed = 0
@@ -186,32 +244,32 @@ def httpenum(ip,puerto,folder):
                         line += job.name + " "
                     logger.info("Procesos pendientes: %s" % (line))
 
-    logger.debug("Fin enumeración HTTP para la IP %s:%s" % (ip,puerto))
+    logger.debug("Fin httpenum para la IP %s:%s (%s)" % (ip,puerto,time.strftime("%M:%S", time.gmtime(timerElapsed))))
     return
 
 # Método para lanzar Nikto, dirb, curl y script de NMAP con servicio HTTPS
 def httpsenum(ip,puerto,folder):
     # Variables para guardar procesos creados para la ip
     jobs = []
-    folderHttps =  folder + "/https"
+    path =  folder + "/https"
     logger.info ("Iniciando enumeración HTTPS para la IP %s:%s" % (ip,puerto))
     # Creamos directorios de las carpetas
-    if not os.path.exists(folderHttps):
+    if not os.path.exists(path):
         logger.info("Creamos directorio https")
-        os.makedirs(folderHttps)
+        os.makedirs(path)
     # dirbScan
-    p = Popenmp.Process(target=scn.dirbScan,name="dirbScanHTTPS_" + ip, args=(ip,puerto,"https",folderHttps))
+    p = mp.Process(target=scn.dirbScan,name="dirbScanHTTPS_" + ip, args=(ip,puerto,"https",path))
     jobs.append(p)
     p.start()
     # nikto
-    p = mp.Process(target=scn.niktoScan,name="niktoScanHTTPS_" + ip, args=(ip,puerto,"https",folderHttps))
+    p = mp.Process(target=scn.niktoScan,name="niktoScanHTTPS_" + ip, args=(ip,puerto,"https",path))
     jobs.append(p)
     p.start()
     # sslScan
-    p = mp.Process(target=scn.sslScan,name="sslScan_" + ip, args=(ip,puerto,folderHttps))
+    p = mp.Process(target=scn.sslScan,name="sslScan_" + ip, args=(ip,puerto,path))
     jobs.append(p)
     p.start()
-    #nmapHTTP_process = multiprocessing.Process(target=nmapScriptsLauncher, args=(ip,puerto,folderHttps,"HTTP"))
+    #nmapHTTP_process = multiprocessing.Process(target=nmapScriptsLauncher, args=(ip,puerto,path,"HTTP"))
     #nmapHTTP_process.start()
     timerElapsed = 0
     while len(jobs) > 0:
@@ -231,8 +289,179 @@ def httpsenum(ip,puerto,folder):
                         line += job.name + " "
                     logger.info("Procesos pendientes: %s" % (line))
 
-    logger.debug("Fin enumeración HTTPS para la IP %s:%s" % (ip,puerto))
+    logger.debug("Fin httpsenum para la IP %s:%s (%s)" % (ip,puerto,time.strftime("%M:%S", time.gmtime(timerElapsed))))
     return
+
+# Método para lanzar banner grabbing y NMAP con servicio SMTP
+def smtpenum(ip,puerto,folder):
+
+    # Variables para guardar procesos creados para la ip
+    jobs = []
+    path =  folder + "/smtp"
+    logger.info ("Iniciando smtpenum para la IP %s:%s" % (ip,puerto))
+
+    # Creamos directorios de las carpetas
+    if not os.path.exists(path):
+        logger.info("Creamos directorio smtp")
+        os.makedirs(path)
+
+    # Banner Grabbing
+    p = mp.Process(target=scn.conectarPuerto,name="conectarPuerto_" + ip, args=(ip,puerto,path,"smtp"))
+    jobs.append(p)
+    p.start()
+    # smtpScan
+    p = mp.Process(target=scn.smtpScan,name="smtpCan_" + ip, args=(ip,puerto,path))
+    jobs.append(p)
+    p.start()
+
+    timerElapsed = 0
+    while len(jobs) > 0:
+        for job in jobs:
+            job.join(5)
+            timerElapsed += 5
+            if not job.exitcode is None:
+                logger.info("Proceso smtpenum de IP %s %s ha acabado!" % (ip, job.name))
+                jobs.remove(job)
+                logger.info("Quedan %s procesos smtpenum de IP %s" % (len(jobs),ip))
+            else:
+                # Cada 30 Segundos mostramos lo que lleva la tarea
+                if (timerElapsed % 30) == 0:
+                    logger.info("smtpenum de IP %s lleva %s minutos" % (ip,time.strftime("%M:%S", time.gmtime(timerElapsed))))
+                    line = ""
+                    for job in jobs:
+                        line += job.name + " "
+                    logger.info("Procesos pendientes: %s" % (line))
+
+    logger.debug("Fin smtpenum para la IP %s:%s (%s)" % (ip,puerto,time.strftime("%M:%S", time.gmtime(timerElapsed))))
+    return
+
+# Método para lanzar banner grabbing y NMAP con servicio SMTP
+def ftpenum(ip,puerto,folder):
+
+    # Variables para guardar procesos creados para la ip
+    jobs = []
+    path =  folder + "/ftp"
+    logger.info ("Iniciando ftpenum para la IP %s:%s" % (ip,puerto))
+
+    # Creamos directorios de las carpetas
+    if not os.path.exists(path):
+        logger.info("Creamos directorio ftp")
+        os.makedirs(path)
+
+    # Banner Grabbing
+    p = mp.Process(target=scn.conectarPuerto,name="conectarPuerto_" + ip, args=(ip,puerto,path,"ftp"))
+    jobs.append(p)
+    p.start()
+    # smtpScan
+    p = mp.Process(target=scn.ftpScan,name="ftpScan_" + ip, args=(ip,puerto,path))
+    jobs.append(p)
+    p.start()
+
+    timerElapsed = 0
+    while len(jobs) > 0:
+        for job in jobs:
+            job.join(5)
+            timerElapsed += 5
+            if not job.exitcode is None:
+                logger.info("Proceso ftpenum de IP %s %s ha acabado!" % (ip, job.name))
+                jobs.remove(job)
+                logger.info("Quedan %s procesos ftpenum de IP %s" % (len(jobs),ip))
+            else:
+                # Cada 30 Segundos mostramos lo que lleva la tarea
+                if (timerElapsed % 30) == 0:
+                    logger.info("ftpenum de IP %s lleva %s minutos" % (ip,time.strftime("%M:%S", time.gmtime(timerElapsed))))
+                    line = ""
+                    for job in jobs:
+                        line += job.name + " "
+                    logger.info("Procesos pendientes: %s" % (line))
+
+    logger.debug("Fin ftpenum para la IP %s:%s (%s)" % (ip,puerto,time.strftime("%M:%S", time.gmtime(timerElapsed))))
+    return
+
+
+# Método para lanzar banner grabbing y NMAP con servicio SMTP
+def smbEnum(ip,puerto,folder):
+
+    # Variables para guardar procesos creados para la ip
+    jobs = []
+    path =  folder + "/smb"
+    logger.info ("Iniciando smbEnum para la IP %s:%s" % (ip,puerto))
+
+    # Creamos directorios de las carpetas
+    if not os.path.exists(path):
+        logger.info("Creamos directorio smb")
+        os.makedirs(path)
+    
+    # smbNmap
+    p = mp.Process(target=scn.smbNmapScan,name="smbNmapScan_" + ip, args=(ip,puerto,path))
+    jobs.append(p)
+    p.start()
+
+    # enum4linux
+    p = mp.Process(target=scn.enum4linuxScan,name="enum4linuxScan_" + ip, args=(ip,puerto,path))
+    jobs.append(p)
+    p.start()
+
+    timerElapsed = 0
+    while len(jobs) > 0:
+        for job in jobs:
+            job.join(5)
+            timerElapsed += 5
+            if not job.exitcode is None:
+                logger.info("Proceso smbEnum de IP %s %s ha acabado!" % (ip, job.name))
+                jobs.remove(job)
+                logger.info("Quedan %s procesos smbEnum de IP %s" % (len(jobs),ip))
+            else:
+                # Cada 30 Segundos mostramos lo que lleva la tarea
+                if (timerElapsed % 30) == 0:
+                    logger.info("smbEnum de IP %s lleva %s minutos" % (ip,time.strftime("%M:%S", time.gmtime(timerElapsed))))
+                    line = ""
+                    for job in jobs:
+                        line += job.name + " "
+                    logger.info("Procesos pendientes: %s" % (line))
+
+    logger.debug("Fin smbEnum para la IP %s:%s (%s)" % (ip,puerto,time.strftime("%M:%S", time.gmtime(timerElapsed))))
+    return
+
+# Método para lanzar banner grabbing y NMAP con servicio SMTP
+def mssqlEnum(ip,puerto,folder):
+
+    # Variables para guardar procesos creados para la ip
+    jobs = []
+    path =  folder + "/mssql"
+    logger.info ("Iniciando mssqlEnum para la IP %s:%s" % (ip,puerto))
+
+    # Creamos directorios de las carpetas
+    if not os.path.exists(path):
+        logger.info("Creamos directorio mssql")
+        os.makedirs(path)
+    
+    # mssqlScan
+    p = mp.Process(target=scn.mssqlScan,name="mssqlScan_" + ip, args=(ip,puerto,path))
+    jobs.append(p)
+    p.start()
+
+    timerElapsed = 0
+    while len(jobs) > 0:
+        for job in jobs:
+            job.join(5)
+            timerElapsed += 5
+            if not job.exitcode is None:
+                logger.info("Proceso mssqlEnum de IP %s %s ha acabado!" % (ip, job.name))
+                jobs.remove(job)
+                logger.info("Quedan %s procesos mssqlEnum de IP %s" % (len(jobs),ip))
+            else:
+                # Cada 30 Segundos mostramos lo que lleva la tarea
+                if (timerElapsed % 30) == 0:
+                    logger.info("mssqlEnum de IP %s lleva %s minutos" % (ip,time.strftime("%M:%S", time.gmtime(timerElapsed))))
+                    line = ""
+                    for job in jobs:
+                        line += job.name + " "
+                    logger.info("Procesos pendientes: %s" % (line))
+
+    logger.debug("Fin mssqlEnum para la IP %s:%s (%s)" % (ip,puerto,time.strftime("%M:%S", time.gmtime(timerElapsed))))
+    return
+
 
 # Comienzo del programa
 if __name__=='__main__':
@@ -244,7 +473,7 @@ if __name__=='__main__':
     targets.pop(0)
 
     # Creamos directorio de la aplicación si es necesario
-    mainPath = "%s/xauditor/" % (os.environ['HOME'])
+    mainPath = "%s/xauditor" % (os.environ['HOME'])
     if not os.path.exists(mainPath):
         print ("Creando directorio para aplicación xauditor")
         print("Directorio Aplicación: %s" % (mainPath))
@@ -269,3 +498,4 @@ if __name__=='__main__':
     os.system('stty sane')
 
 
+mssqlEnum

@@ -111,6 +111,94 @@ def sslScan(ip,puerto,folder):
     logger.info("SSL scan para %s:%s finalizado" %(ip,puerto))
     return
 
+# Método para realizar un escaneo de SMTP con NMAP
+def smtpScan(ip,puerto,folder):
+    logger.info("SMTP scan para %s:%s comenzado" %(ip,puerto))
+    scripts = "smtp-commands,smtp-enum-users,smtp-vuln-cve2010-4344,smtp-vuln-cve2011-1720,smtp-vuln-cve2011-1764"
+    cmd = "nmap -sV -Pn -p %s --script=%s %s -oN %s/smtpScan-%s@%s.txt" % (puerto,scripts,ip,folder,ip,time.strftime("%H_%M_%S"))
+    logger.debug("Comando: %s" % (cmd))
+    results = subprocess.check_output(cmd, shell=True)
+    # TODO Posible análisis y volcado a fichero final
+    logger.info("SMTP scan para %s:%s finalizado" %(ip,puerto))
+    return
+
+# Método para realizar un escaneo de SMTP con NMAP
+def ftpScan(ip,puerto,folder):
+    logger.info("FTP scan para %s:%s comenzado" %(ip,puerto))
+    scripts = "ftp-anon,ftp-bounce,ftp-libopie,ftp-proftpd-backdoor,ftp-vsftpd-backdoor,ftp-vuln-cve2010-4221"
+    cmd = "nmap -sV -Pn -p %s --script=%s -oN %s/ftpScan-%s@%s.txt %s" % (puerto,scripts,folder,ip,time.strftime("%H_%M_%S"),ip)
+    logger.debug("Comando: %s" % (cmd))
+    results = subprocess.check_output(cmd, shell=True)
+    # TODO Posible análisis y volcado a fichero final
+    logger.info("FTP scan para %s:%s finalizado" %(ip,puerto))
+    return
+
+# Método para realizar un escaneo de SMB con NMAP
+def smbNmapScan(ip,puerto,folder):
+    logger.info("SMB scan para %s:%s comenzado" %(ip,puerto))
+    scripts = "smb-enum-shares.nse,smb-ls.nse,smb-enum-users.nse,smb-mbenum.nse,smb-os-discovery.nse,smb-security-mode.nse,smbv2-enabled.nse,smb-vuln-cve2009-3103.nse,smb-vuln-ms06-025.nse,smb-vuln-ms07-029.nse,smb-vuln-ms08-067.nse,smb-vuln-ms10-054.nse,smb-vuln-ms10-061.nse,smb-vuln-regsvc-dos.nse,smbv2-enabled.nse"
+    cmd = "nmap --script=%s %s -oN %s/smbNmapScan-%s_%s@%s.txt" % (scripts,ip,folder,ip,puerto,time.strftime("%H_%M_%S"))
+    logger.debug("Comando: %s" % (cmd))
+    results = subprocess.check_output(cmd, shell=True)
+    # TODO Posible análisis y volcado a fichero final
+    logger.info("SMB scan para %s:%s finalizado" %(ip,puerto))
+    return
+
+# Método para realizar un escaneo de SMB con enum4linux
+def enum4linuxScan(ip,puerto,folder):
+    logger.info("enum4linux scan para %s:%s comenzado" %(ip,puerto))
+    cmd = "enum4linux -a %s > %s/enum4linuxScan-%s_%s@%s.txt" % (ip,folder,ip,puerto,time.strftime("%H_%M_%S"))
+    logger.debug("Comando: %s" % (cmd))
+    results = subprocess.check_output(cmd, shell=True)
+    # TODO Posible análisis y volcado a fichero final
+    logger.info("enum4linux scan para %s:%s finalizado" %(ip,puerto))
+    return
+
+# Método para realizar un escaneo de mssql con NMAP
+def mssqlScan(ip,puerto,folder):
+    logger.info("MSSQL scan para %s:%s comenzado" %(ip,puerto))
+    scripts = "ms-sql-info,ms-sql-config,ms-sql-dump-hashes --script-args=mssql.instance-port=1433,smsql.username-sa,mssql.password-sa"
+    cmd = "nmap -sV -Pn -p %s --script=%s -oN %s/mssqlScan-%s@%s.txt %s" % (puerto,scripts,folder,ip,time.strftime("%H_%M_%S"),ip)
+    logger.debug("Comando: %s" % (cmd))
+    results = subprocess.check_output(cmd, shell=True)
+    # TODO Posible análisis y volcado a fichero final
+    logger.info("MSSQL scan para %s:%s finalizado" %(ip,puerto))
+    return
+
+# Método para conectar a un puerto y devolver el resultado del banner conseguido
+def conectarPuerto(ip,puerto,folder,servicio):
+
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.connect((ip, int(puerto)))
+    banner = s.recv(1024)
+    result = "NADA"
+    file = ""
+
+    if "smtp" in servicio:
+        result = banner + "\r\n"
+        filePath = folder + "stmp_banner-%s@%s.txt" % (ip,time.strftime("%H_%M_%S"))
+    elif "ftp" in servicio:
+        s.send("USER anonymous\r\n")
+        user = s.recv(1024)
+        s.send("PASS anonymous\r\n")
+        password = s.recv(1024)
+        result = banner + "\r\n" + user + "\r\n" + password
+        filePath = folder + "ftp_banner-%s@%s.txt" % (ip,time.strftime("%H_%M_%S"))
+    elif "ssh" in servicio:
+        result = banner
+        filePath = folder + "ssh_banner-%s@%s.txt" % (ip,time.strftime("%H_%M_%S"))
+
+
+    # Cerramos el socket
+    s.close()
+    # Escribimos los resultados en un fichero
+    file = open (filePath,'w')
+    file.write(result)
+    file.close()
+    return
+
+
+
 # Método para lanzar scripts nmap para HTTP    
 def nmapScanHTTP(ip,puerto,folder):
     logger.info("nmapScanHTTP para %s:%s comenzado" %(ip,puerto))
