@@ -66,14 +66,15 @@ def analyzeIP(ip,folder):
     p = mp.Process(target=scn.nmapScan,name="nmapScan_" + ip, args=(scanip,ipPath,servicios))
     jobs.append(p)
     p.start()
-    #p = mp.Process(target=scn.nmapScan,name="nmapUdpScan_" + ip, args=(scanip,ipPath,serviciosUDP))
-    #jobs.append(p)
-    #p.start()
-    #contJobs += 1
+    p = mp.Process(target=scn.nmapScan,name="nmapUdpScan_" + ip, args=(scanip,ipPath,serviciosUDP))
+    jobs.append(p)
+    p.start()
+    contJobs += 1
     # UnicornScan (sólo guardamos resultado)
     p = mp.Process(target=scn.unicornScan,name="unicornScan_" + ip, args=(scanip,ipPath))
     jobs.append(p)
     p.start()
+    contJobs += 1
     # Entramos en bucle hasta que se completen todos los procesos
     # Es posible que los resultados de un proceso impliquen la creación de otro
     print ("Procesos: %s" % (len(jobs)))
@@ -103,10 +104,11 @@ def analyzeIP(ip,folder):
                         line += job.name + " "
                     logger.info("Procesos pendientes: %s" % (line))
 
-
+    
 # Método para comprobar que proceso de análisis de IP ha terminado
 # * args recibirá servicios ocasionalmente por eso no se pasa siempre
 def checkJobIPFinished(nombre,listaJobs,ip,folder,*args):
+
     logger.debug("Entro checkJobIPFinished (%s)." % (nombre))
     if "nmapScan" in nombre or "nmapUdpScan" in nombre:
         # Analizamos los servicios encontrados        
@@ -184,7 +186,7 @@ def httpenum(ip,puerto,folder):
                         line += job.name + " "
                     logger.info("Procesos pendientes: %s" % (line))
 
-    logger.debug("Fin enumeración HTTPS para la IP %s:%s" % (ip,puerto))
+    logger.debug("Fin enumeración HTTP para la IP %s:%s" % (ip,puerto))
     return
 
 # Método para lanzar Nikto, dirb, curl y script de NMAP con servicio HTTPS
@@ -198,7 +200,7 @@ def httpsenum(ip,puerto,folder):
         logger.info("Creamos directorio https")
         os.makedirs(folderHttps)
     # dirbScan
-    p = mp.Process(target=scn.dirbScan,name="dirbScanHTTPS_" + ip, args=(ip,puerto,"https",folderHttps))
+    p = Popenmp.Process(target=scn.dirbScan,name="dirbScanHTTPS_" + ip, args=(ip,puerto,"https",folderHttps))
     jobs.append(p)
     p.start()
     # nikto

@@ -11,10 +11,11 @@ logger = logging.getLogger("xauditor").getChild('scaner')
 # Función de escaneo NMAP
 # servicios es un diccionario que vendrá de un manager para compartir memoria entre procesos
 def nmapScan(ip,folder,servicios):
+    # Variable Local para los servicios encontrados
+    serviciosLocal = {}
     # Muy Intenso
     #nmapCmd = "nmap -vv -Pn -A -sC -sS -T4 -p- -O %s -oN '%s/%s@%s.nmap'" % (ip,folder,ip,time.strftime("%H_%M_%S"))
     # Más ligero
-    serviciosLocal = {}
     nmapCmd = "nmap -sV -O %s -oN '%s/%s@%s.nmap'" % (ip,folder,ip,time.strftime("%H_%M_%S"))
     logger.info("Escaneo nmap de versiones sobre %s",ip)
     #logger.debug("Comando nmapScan: %s",nmapCmd)
