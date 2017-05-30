@@ -12,6 +12,7 @@ from docx import Document
 # Imports de paquetes propios
 import sistema.operaciones as oper
 import classes.scaner as scn
+import classes.pythondocxhandler as pdh
 
 
 # Variables  globales
@@ -70,19 +71,7 @@ def analyzeIP(ip,folder):
     document.add_heading(ip + '_Template', 0)
     document.add_heading('Reconocimiento', level=1)
     # Añadimos escaneos NMAP, conexión UDP, etc
-    document.add_paragraph('Syn-scan', style='ListBullet').bold = True
-    document.add_paragraph("nmap -sS %s -oN '%s/%s_syn-scan.nmap'" % (ip,folder,ip))
-    document.add_paragraph('Service-version, default scripts, OS', style='ListBullet')
-    document.add_paragraph("nmap %s -sV -sC -O -oN '%s/%s_versiones.nmap'" % (ip,folder,ip))
-    document.add_paragraph('Escaneo de todos los puertos (intenso)', style='ListBullet')
-    document.add_paragraph("nmap %s -sV -sC -O -oN '%s/%s_all_ports.nmap'" % (ip,folder,ip))
-    document.add_paragraph('Escaneo UDP', style='ListBullet')
-    document.add_paragraph("nmap %s -sU -oN '%s/%s_UDP.nmap'" % (ip,folder,ip))
-    document.add_paragraph("unicornscan -mU -v -I %s > '%s/%s_unicorn_scan.nmap'" % (ip,folder,ip))
-    document.add_paragraph('Conexión a puerto UDP (si es posible)', style='ListBullet')
-    document.add_paragraph("nc -u %s 48772" % (ip))
-    document.add_paragraph('Super Escaneo (muy intenso)', style='ListBullet')
-    document.add_paragraph("nmap %s -p- -A -T4 -sC -oN '%s/%s_UDP.nmap'" % (ip,folder,ip))
+    pdh.addRecon(document,ip,folder)
     document.save(folder + '_' + ip + '_template.doc')
     # QUITAR CUANDO SE QUIERA PROBAR
     seguir = False
