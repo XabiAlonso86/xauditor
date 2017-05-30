@@ -8,6 +8,7 @@ import multiprocessing as mp
 import logging
 import time
 import colorlog
+from docx import Document
 # Imports de paquetes propios
 import sistema.operaciones as oper
 import classes.scaner as scn
@@ -63,17 +64,42 @@ def analyzeIP(ip,folder):
     manager = mp.Manager()
     servicios = manager.dict()
     serviciosUDP = manager.dict()
-    # Creamos procesos escaneo NMAP
-    p = mp.Process(target=scn.nmapScan,name="nmapScan_" + ip, args=(scanip,ipPath,servicios))
-    jobs.append(p)
-    p.start()
-    #p = mp.Process(target=scn.nmapUdpScan,name="nmapUdpScan_" + ip, args=(scanip,ipPath,serviciosUDP))
-    #jobs.append(p)
-    #p.start()
-    # UnicornScan (sólo guardamos resultado)
-    p = mp.Process(target=scn.unicornScan,name="unicornScan_" + ip, args=(scanip,ipPath))
-    jobs.append(p)
-    p.start()
+
+    # Creamos documento word para la IP
+    document = Document()
+    document.add_heading(ip + '_Template', 0)
+    document.add_heading('Reconocimiento', level=1)
+    # Añadimos escaneos NMAP, conexión UDP, etc
+    document.add_paragraph('Syn-scan', style='ListBullet').bold = True
+    document.add_paragraph("nmap -sS %s -oN '%s/%s_syn-scan.nmap'" % (ip,folder,ip))
+    document.add_paragraph('Service-version, default scripts, OS', style='ListBullet')
+    document.add_paragraph("nmap %s -sV -sC -O -oN '%s/%s_versiones.nmap'" % (ip,folder,ip))
+    document.add_paragraph('Escaneo de todos los puertos (intenso)', style='ListBullet')
+    document.add_paragraph("nmap %s -sV -sC -O -oN '%s/%s_all_ports.nmap'" % (ip,folder,ip))
+    document.add_paragraph('Escaneo UDP', style='ListBullet')
+    document.add_paragraph("nmap %s -sU -oN '%s/%s_UDP.nmap'" % (ip,folder,ip))
+    document.add_paragraph("unicornscan -mU -v -I %s > '%s/%s_unicorn_scan.nmap'" % (ip,folder,ip))
+    document.add_paragraph('Conexión a puerto UDP (si es posible)', style='ListBullet')
+    document.add_paragraph("nc -u %s 48772" % (ip))
+    document.add_paragraph('Super Escaneo (muy intenso)', style='ListBullet')
+    document.add_paragraph("nmap %s -p- -A -T4 -sC -oN '%s/%s_UDP.nmap'" % (ip,folder,ip))
+    document.save(folder + '_' + ip + '_template.doc')
+    # QUITAR CUANDO SE QUIERA PROBAR
+    seguir = False
+    if (seguir == True):
+        # Creamos procesos escaneo NMAP
+        p = mp.Process(target=scn.nmapScan,name="nmapScan_" + ip, args=(scanip,ipPath,servicios))
+        jobs.append(p)
+        p.start()
+        # UDP Nmap Scan
+        p = mp.Process(target=scn.nmapUdpScan,name="nmapUdpScan_" + ip, args=(scanip,ipPath,serviciosUDP))
+        jobs.append(p)
+        p.start()
+        # UnicornScan (sólo guardamos resultado)
+        p = mp.Process(target=scn.unicornScan,name="unicornScan_" + ip, args=(scanip,ipPath))
+        jobs.append(p)
+        p.start()
+
     # Entramos en bucle hasta que se completen todos los procesos
     # Es posible que los resultados de un proceso impliquen la creación de otro
     print ("Procesos: %s" % (len(jobs)))
