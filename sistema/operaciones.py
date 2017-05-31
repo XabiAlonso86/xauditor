@@ -30,3 +30,10 @@ def createIPPath(path,ip):
         os.makedirs(ipPath)
 
     return ipPath
+
+def createFolder(path):
+    # Creamos directorios de las carpetas
+    if not os.path.exists(path):
+        logger.debug("Creamos directorio %s" % (path))
+        os.makedirs(path)
+    return

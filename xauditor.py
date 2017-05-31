@@ -69,21 +69,19 @@ def analyzeIP(ip,folder):
     # Creamos documento word para la IP
     document = Document()
     document.add_heading(ip + '_Template', 0)
-    document.add_heading('Reconocimiento', level=1)
     # Añadimos escaneos NMAP, conexión UDP, etc
     pdh.addRecon(document,ip,folder)
-    document.save(folder + '_' + ip + '_template.doc')
     # QUITAR CUANDO SE QUIERA PROBAR
-    seguir = False
+    seguir = True
     if (seguir == True):
         # Creamos procesos escaneo NMAP
         p = mp.Process(target=scn.nmapScan,name="nmapScan_" + ip, args=(scanip,ipPath,servicios))
         jobs.append(p)
         p.start()
         # UDP Nmap Scan
-        p = mp.Process(target=scn.nmapUdpScan,name="nmapUdpScan_" + ip, args=(scanip,ipPath,serviciosUDP))
-        jobs.append(p)
-        p.start()
+        #p = mp.Process(target=scn.nmapUdpScan,name="nmapUdpScan_" + ip, args=(scanip,ipPath,serviciosUDP))
+        #jobs.append(p)
+        #p.start()
         # UnicornScan (sólo guardamos resultado)
         p = mp.Process(target=scn.unicornScan,name="unicornScan_" + ip, args=(scanip,ipPath))
         jobs.append(p)
@@ -103,9 +101,13 @@ def analyzeIP(ip,folder):
                 jobs.remove(job)
                 # Miramos qué proceso ha terminado y si hay que crear alguno más
                 if "nmapScan" in jobFinished:
-                    checkJobIPFinished(jobFinished,jobs,ip,ipPath,servicios)
+                    # Añadimos cabecera para resultados
+                    document.add_heading('Resultados NMAP Scan %s' % (ip), level=1)
+                    checkJobIPFinished(jobFinished,jobs,ip,ipPath,servicios,document)
                 elif "nmapUdpScan" in jobFinished:
-                    checkJobIPFinished(jobFinished,jobs,ip,ipPath,serviciosUDP)
+                    # Añadimos cabecera para resultados
+                    document.add_heading('Resultados NMAP UDP Scan %s' % (ip), level=1)
+                    checkJobIPFinished(jobFinished,jobs,ip,ipPath,serviciosUDP,document)
                 else:
                     checkJobIPFinished(jobFinished,jobs,ip,ipPath)
                 logger.debug("Quedan %s" % (len(jobs)))
@@ -119,6 +121,7 @@ def analyzeIP(ip,folder):
                     logger.info("Procesos pendientes: %s" % (line))
 
     logger.info("analyzeIP de IP %s terminado en %s minutos" % (ip,time.strftime("%M:%S", time.gmtime(timerElapsed))))
+    document.save(folder + '_' + ip + '_template.doc')
 
     
 # Método para comprobar que proceso de análisis de IP ha terminado
@@ -128,7 +131,11 @@ def checkJobIPFinished(nombre,listaJobs,ip,folder,*args):
     logger.debug("Entro checkJobIPFinished (%s)." % (nombre))
     if "nmapScan" in nombre or "nmapUdpScan" in nombre:
         # Analizamos los servicios encontrados        
-        servicios = args[0]    
+        servicios = args[0]
+        # Recogemos documento
+        document = args[1]
+        # Añadimos al documento los servicios encontrados
+        pdh.addNmapResults(document,servicios)
         # Lo primero es ver si tenemos más de un serivio (servicio OS siempre está)
         if len(servicios) == 1:
             logger.warning("No se han encontrado servicios para la IP %s. Revise los análisis de NMAP para mayor información" % (ip))
@@ -137,6 +144,7 @@ def checkJobIPFinished(nombre,listaJobs,ip,folder,*args):
                 # Servicio HTTP
                 if (nombre == "http") or (nombre == "http-proxy") or (nombre == "http-alt") or (nombre == "http?"):
                     for puerto in servicio.puertos:
+                        pdh.addHttp(document,ip,folder,puerto)
                         # Lanzamos proceso para analizar http
                         logger.info("Encontrado servicio http para ip %s en puerto %s" % (ip,puerto))
                         # Creamos proceso y lo añadimos a la lista
@@ -148,6 +156,7 @@ def checkJobIPFinished(nombre,listaJobs,ip,folder,*args):
                 # Servicio HTTPS
                 elif (nombre == "ssl/http") or (nombre == "https") or (nombre == "https?"):
                     for puerto in servicio.puertos:
+                        pdh.addHttps(document,ip,folder,puerto)
                         # Lanzamos proceso para analizar https
                         logger.info("Encontrado servicio https para ip %s en puerto %s" % (ip,puerto))
                         # Creamos proceso y lo añadimos a la lista
@@ -158,6 +167,7 @@ def checkJobIPFinished(nombre,listaJobs,ip,folder,*args):
                         p.start()
                 # Servicio SMTP
                 elif (nombre == "smtp"):
+                    pdh.addSmtp(document,ip,folder)
                     for puerto in servicio.puertos:
                         # Lanzamos proceso para analizar smtp
                         logger.info("Encontrado servicio smtp para ip %s en puerto %s" % (ip,puerto))
@@ -169,6 +179,7 @@ def checkJobIPFinished(nombre,listaJobs,ip,folder,*args):
                         p.start()
                 # Servicio FTP
                 elif (nombre == "ftp"):
+                    pdh.addFtp(document,ip,folder)
                     for puerto in servicio.puertos:
                         # Lanzamos proceso para analizar ftp
                         logger.info("Encontrado servicio ftp para ip %s en puerto %s" % (ip,puerto))
@@ -180,6 +191,7 @@ def checkJobIPFinished(nombre,listaJobs,ip,folder,*args):
                         p.start()
                 # Servicio NetBios
                 elif (nombre == "microsoft-ds") or (nombre == "netbios-ssn"):
+                    pdh.addSmb(document,ip,folder)
                     for puerto in servicio.puertos:
                         # Lanzamos proceso para analizar netbios
                         logger.info("Encontrado servicio NetBios para ip %s en puerto %s" % (ip,puerto))
@@ -191,6 +203,7 @@ def checkJobIPFinished(nombre,listaJobs,ip,folder,*args):
                         p.start()
                 # Servicio ms-sql
                 elif (nombre == "ms-sql"):
+                    pdh.addMssql(document,ip,folder)
                     for puerto in servicio.puertos:
                         # Lanzamos proceso para analizar ms-sql
                         logger.info("Encontrado servicio MS-SQL para ip %s en puerto %s" % (ip,puerto))
@@ -211,6 +224,30 @@ def checkJobIPFinished(nombre,listaJobs,ip,folder,*args):
                         logger.debug("Añadido proceso sshScan a la lista de la IP %s. Ahora hay %s" % (ip,len(listaJobs)))
                         # Iniciamos el proceso
                         p.start()
+                # Servicio nfs
+                elif (nombre == "nfs"):
+                    pdh.addNfs(document,ip,folder)
+                # Servicio MSRPC
+                elif (nombre == "msrpc"):
+                    pdh.addMsRPC(document,ip,folder)
+                # Servicio SNMP
+                elif (nombre == "snmp"):
+                    pdh.addSnmp(document,ip,folder)
+                # Servicio Oracle
+                elif (nombre == "oracle"):
+                    pdh.addOracle(document,ip,folder)
+                # Servicio Mysql
+                elif (nombre == "mysql"):
+                    pdh.addMysql(document,ip,folder)
+                # Servicio RpcBind
+                elif (nombre == "rpcbind"):
+                    pdh.addRpcbind(document,ip,folder)
+                # Servicio Remote Desktop
+                elif (nombre == "ms-wbt-server"):
+                    pdh.addRemoteDesktop(document,ip,folder)
+                # Servicio Oracle Web UI
+                #elif (nombre == "oracle"):
+                #    pdh.addOracleWebInterface(document,ip,folder)
                 ## Resto de servicios
                             
 
@@ -225,9 +262,7 @@ def httpenum(ip,puerto,folder):
     path =  folder + "/http"
     logger.info ("Iniciando enumeración HTTP para la IP %s:%s" % (ip,puerto))
     # Creamos directorios de las carpetas
-    if not os.path.exists(path):
-        logger.debug("Creamos directorio http")
-        os.makedirs(path)
+    oper.createFolder(path)
     # Creamos procesos
     # dirbScan
     p = mp.Process(target=scn.dirbScan,name="dirbScan_" + ip, args=(ip,puerto,"http",path))
@@ -269,9 +304,7 @@ def httpsenum(ip,puerto,folder):
     path =  folder + "/https"
     logger.info ("Iniciando enumeración HTTPS para la IP %s:%s" % (ip,puerto))
     # Creamos directorios de las carpetas
-    if not os.path.exists(path):
-        logger.debug("Creamos directorio https")
-        os.makedirs(path)
+    oper.createFolder(path)
     # dirbScan
     p = mp.Process(target=scn.dirbScan,name="dirbScanHTTPS_" + ip, args=(ip,puerto,"https",path))
     jobs.append(p)
@@ -316,10 +349,7 @@ def smtpenum(ip,puerto,folder):
     logger.info ("Iniciando smtpenum para la IP %s:%s" % (ip,puerto))
 
     # Creamos directorios de las carpetas
-    if not os.path.exists(path):
-        logger.debug("Creamos directorio smtp")
-        os.makedirs(path)
-
+    oper.createFolder(path)
     # Banner Grabbing
     p = mp.Process(target=scn.conectarPuerto,name="conectarPuerto_" + ip, args=(ip,puerto,path,"smtp"))
     jobs.append(p)
@@ -359,9 +389,7 @@ def ftpenum(ip,puerto,folder):
     logger.info ("Iniciando ftpenum para la IP %s:%s" % (ip,puerto))
 
     # Creamos directorios de las carpetas
-    if not os.path.exists(path):
-        logger.debug("Creamos directorio ftp")
-        os.makedirs(path)
+    oper.createFolder(path)
 
     # Banner Grabbing
     p = mp.Process(target=scn.conectarPuerto,name="conectarPuerto_" + ip, args=(ip,puerto,path,"ftp"))
@@ -403,9 +431,7 @@ def smbEnum(ip,puerto,folder):
     logger.info ("Iniciando smbEnum para la IP %s:%s" % (ip,puerto))
 
     # Creamos directorios de las carpetas
-    if not os.path.exists(path):
-        logger.debug("Creamos directorio smb")
-        os.makedirs(path)
+    oper.createFolder(path)
     
     # smbNmap
     p = mp.Process(target=scn.smbNmapScan,name="smbNmapScan_" + ip, args=(ip,puerto,path))
@@ -447,9 +473,7 @@ def mssqlEnum(ip,puerto,folder):
     logger.info ("Iniciando mssqlEnum para la IP %s:%s" % (ip,puerto))
 
     # Creamos directorios de las carpetas
-    if not os.path.exists(path):
-        logger.debug("Creamos directorio mssql")
-        os.makedirs(path)
+    oper.createFolder(path)
     
     # mssqlScan
     p = mp.Process(target=scn.mssqlScan,name="mssqlScan_" + ip, args=(ip,puerto,path))
