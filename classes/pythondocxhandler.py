@@ -17,6 +17,7 @@ def addNmapResults(document,servicios):
     
     # Creamos la tabla
     table = document.add_table(rows=1, cols=4)
+    table.style = "Medium Shading 2 Accent 2"
     # Creamos cabecera de la tabla
     hdr_cells = table.rows[0].cells
     hdr_cells[0].text = 'Servicio'
@@ -108,7 +109,7 @@ def addRpcbind(document,ip,folder):
     document.add_heading('RpcBind (135) (Linux)', level=1)
     # Lista + comando
     addListBullet(document,'rpcinfo')
-    addTextCommand(document,"rpcinfo -p %s" % (ip))
+    addTextCommand(document,"Revisar ficheros NMAP que lo hace automáticamente")
     return
 
 def addSmb(document,ip,folder):

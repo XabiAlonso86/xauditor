@@ -72,16 +72,16 @@ def analyzeIP(ip,folder):
     # Añadimos escaneos NMAP, conexión UDP, etc
     pdh.addRecon(document,ip,folder)
     # QUITAR CUANDO SE QUIERA PROBAR
-    seguir = True
-    if (seguir == True):
+    test = False
+    if (test == False):
         # Creamos procesos escaneo NMAP
         p = mp.Process(target=scn.nmapScan,name="nmapScan_" + ip, args=(scanip,ipPath,servicios))
         jobs.append(p)
         p.start()
         # UDP Nmap Scan
-        #p = mp.Process(target=scn.nmapUdpScan,name="nmapUdpScan_" + ip, args=(scanip,ipPath,serviciosUDP))
-        #jobs.append(p)
-        #p.start()
+        p = mp.Process(target=scn.nmapUdpScan,name="nmapUdpScan_" + ip, args=(scanip,ipPath,serviciosUDP))
+        jobs.append(p)
+        p.start()
         # UnicornScan (sólo guardamos resultado)
         p = mp.Process(target=scn.unicornScan,name="unicornScan_" + ip, args=(scanip,ipPath))
         jobs.append(p)

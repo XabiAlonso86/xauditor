@@ -161,8 +161,10 @@ def analyzeNMAPResult(result):
     services = {}
     lines = result.split('\n')
     for line in lines:
-        if ("/tcp" in line) or ("/udp" in line):
-            processPortLine(line,services)
+        if ("/tcp" in line) and (line[0].isdigit()):
+            processPortLine(line,services,False)
+        if ("/udp" in line) and (line[0].isdigit()):
+            processPortLine(line,services,True)
         elif ("Running" in line):
             processOSLine(line,services)
 
@@ -170,7 +172,7 @@ def analyzeNMAPResult(result):
     return services
 
 # Método que analiza la línea NMAP para un puerto
-def processPortLine(line, services):
+def processPortLine(line,services,udp):
     estado = ''
     # Dejamos la línea sólo con espacios
     while "  " in line:
@@ -181,7 +183,10 @@ def processPortLine(line, services):
     # Puerto
     puerto = lineSplit[0].split("/")[0]
     # Version
-    version = ' '.join(lineSplit[3:])
+    if (udp == True):
+        version = ' '.join(lineSplit[4:])
+    else:
+        version = ' '.join(lineSplit[3:])
     # Estado
     estado = lineSplit[1]
     # Si existe el servicio añadimos una opción nueva, si no lo creamos
