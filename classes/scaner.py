@@ -3,6 +3,7 @@ import subprocess
 import logging
 import time
 import os
+import socket
 # Imports local
 import classes.servicio as srv
 
@@ -118,17 +119,17 @@ def conectarPuerto(ip,puerto,folder,servicio):
     logger.info("conectarPuerto (%s) para %s:%s iniciado" % (servicio,ip,puerto))
 
     if "smtp" in servicio:
-        result = banner + "\r\n"
+        result = banner.decode("utf-8") + "\r\n"
         filePath = folder + "stmp_banner-%s@%s.txt" % (ip,time.strftime("%H_%M_%S"))
     elif "ftp" in servicio:
-        s.send("USER anonymous\r\n")
+        s.send(b'USER anonymous\r\n')
         user = s.recv(1024)
-        s.send("PASS anonymous\r\n")
+        s.send(b'PASS anonymous\r\n')
         password = s.recv(1024)
-        result = banner + "\r\n" + user + "\r\n" + password
+        result = banner.decode("utf-8") + "\r\n" + user.decode("utf-8") + "\r\n" + password.decode("utf-8")
         filePath = folder + "ftp_banner-%s@%s.txt" % (ip,time.strftime("%H_%M_%S"))
     elif "ssh" in servicio:
-        result = banner
+        result = banner.decode("utf-8")
         filePath = folder + "ssh_banner-%s@%s.txt" % (ip,time.strftime("%H_%M_%S"))
 
     # Cerramos el socket

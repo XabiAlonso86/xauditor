@@ -219,7 +219,7 @@ def checkJobIPFinished(nombre,listaJobs,ip,folder,*args):
                         # Lanzamos proceso para analizar ms-sql
                         logger.info("Encontrado servicio ssh para ip %s en puerto %s" % (ip,puerto))
                         # Creamos el proceso y lo añadimos a la lista
-                        p = mp.Process(target=scn.conectarPuerto,name="sshScan_" + ip, args=(ip,puerto,folder + "/ssh""ssh"))
+                        p = mp.Process(target=scn.conectarPuerto,name="sshScan_" + ip, args=(ip,puerto,folder + "/ssh","ssh"))
                         listaJobs.append(p)
                         logger.debug("Añadido proceso sshScan a la lista de la IP %s. Ahora hay %s" % (ip,len(listaJobs)))
                         # Iniciamos el proceso
